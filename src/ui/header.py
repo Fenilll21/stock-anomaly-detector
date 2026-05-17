@@ -55,8 +55,9 @@ def render_page_header() -> None:
             use_container_width=True,
             disabled=not has_content,
         ):
-            st.session_state["results"] = None
-            st.session_state["error"]   = None
+            st.session_state["results"]       = None
+            st.session_state["error"]         = None
+            st.session_state["reset_sidebar"] = True
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 

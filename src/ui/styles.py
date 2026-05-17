@@ -404,6 +404,67 @@ def inject_styles() -> None:
             padding-bottom: 0.4rem;
             border-bottom: 1px solid var(--border);
         }
+        /* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+        /* Tighten padding on smaller screens */
+        @media (max-width: 1200px) {
+            .block-container {
+                padding-left: 1.5rem !important;
+                padding-right: 1.5rem !important;
+            }
+        }
+
+        /* Stack metric cards into 3 cols on medium screens */
+        @media (max-width: 1100px) {
+            [data-testid="stMetric"] {
+                min-width: 140px !important;
+            }
+        }
+
+        /* Timeline cards: smaller on tighter viewports */
+        @media (max-width: 900px) {
+            .block-container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+        }
+
+        /* Sidebar: tighter padding on small screens */
+        @media (max-width: 768px) {
+            [data-testid="stSidebar"] > div:first-child {
+                padding: 1rem 0.75rem !important;
+            }
+            [data-testid="stMetricValue"] {
+                font-size: 1.2rem !important;
+            }
+        }
+
+        /* Smooth sidebar slide transition */
+        [data-testid="stSidebar"] {
+            transition: transform 0.25s ease, width 0.25s ease !important;
+        }
+
+        /* Smooth page content shift when sidebar opens/closes */
+        .main .block-container {
+            transition: padding 0.25s ease !important;
+        }
+
+        /* Prevent horizontal overflow on small screens */
+        .stApp {
+            overflow-x: hidden !important;
+        }
+
+        /* Scrollbar styling — thin and dark */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
         </style>
         """,
         unsafe_allow_html=True,

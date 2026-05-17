@@ -5,6 +5,7 @@ button always see the correct session state on first run.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.data_fetcher     import fetch_stock_data, get_ticker_info, validate_date_range
 from src.anomaly_detector import run_anomaly_detection, get_anomaly_summary
@@ -32,11 +33,31 @@ st.set_page_config(
 inject_styles()
 
 # ── Session-state init ────────────────────────────────────────────────────────
-# Must happen before ANYTHING renders so header/banner see correct state
 if "results" not in st.session_state:
     st.session_state["results"] = None
 if "error" not in st.session_state:
     st.session_state["error"]   = None
+if "reset_sidebar" not in st.session_state:
+    st.session_state["reset_sidebar"] = False
+
+# ── Sidebar scroll reset ──────────────────────────────────────────────────────
+# When home button is clicked we set reset_sidebar=True before rerun.
+# On this rerun we inject JS to scroll the sidebar back to the top,
+# then clear the flag so it only fires once.
+if st.session_state.pop("reset_sidebar", False):
+    components.html(
+        """
+        <script>
+        (function() {
+            // Scroll sidebar inner div to top smoothly
+            const sel = '[data-testid="stSidebar"] > div:first-child';
+            const sidebar = window.parent.document.querySelector(sel);
+            if (sidebar) sidebar.scrollTo({ top: 0, behavior: "smooth" });
+        })();
+        </script>
+        """,
+        height=0,
+    )
 
 # ── Sidebar → config ──────────────────────────────────────────────────────────
 # Sidebar renders here but we run the pipeline before the main content
