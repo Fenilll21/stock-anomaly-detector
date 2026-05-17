@@ -56,12 +56,34 @@ def inject_styles() -> None:
             font-family: var(--font-body) !important;
         }
 
-        /* ── STREAMLIT CHROME ───────────────────────────────────────────── */
-        /* Base dark theme is handled by .streamlit/config.toml — we do NOT
-           touch visibility/display of any Streamlit chrome element here.
-           Doing so risks breaking the sidebar toggle button.            */
+        /* ── LAYOUT & CHROME ────────────────────────────────────────────── */
+        /* Base dark theme is handled by .streamlit/config.toml.
+           We only adjust padding and opacity here — no display/visibility
+           overrides that could break the sidebar toggle.                */
+
+        /* Push content below the fixed header bar */
         .block-container {
-            padding-top: 1rem !important;
+            padding-top: 5rem !important;
+            padding-left: 2.5rem !important;
+            padding-right: 2.5rem !important;
+            padding-bottom: 4rem !important;
+            max-width: 1400px !important;
+        }
+
+        /* Fade deploy button + hamburger without breaking layout */
+        [data-testid="stDeployButton"],
+        [data-testid="stMainMenuPopover"],
+        #MainMenu {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transition: opacity 0.2s !important;
+        }
+        /* Reveal on header hover so it's still accessible if needed */
+        header:hover [data-testid="stDeployButton"],
+        header:hover [data-testid="stMainMenuPopover"],
+        header:hover #MainMenu {
+            opacity: 0.3 !important;
+            pointer-events: auto !important;
         }
 
         /* ── TYPOGRAPHY ─────────────────────────────────────────────────── */
