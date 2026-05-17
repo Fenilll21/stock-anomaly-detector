@@ -40,16 +40,26 @@ if "error" not in st.session_state:
 if "reset_sidebar" not in st.session_state:
     st.session_state["reset_sidebar"] = False
 
+# ── Home reset (must run BEFORE sidebar renders) ─────────────────────────────
+# Runs FIRST so reset_sidebar flag is set before the scroll check below.
+if st.session_state.pop("home_reset", False):
+    st.session_state["results"]         = None
+    st.session_state["error"]           = None
+    st.session_state["sb_a_input"]      = "AAPL"
+    st.session_state["sb_b_input"]      = "MSFT"
+    st.session_state["sb_a_pending"]    = None
+    st.session_state["sb_b_pending"]    = None
+    st.session_state["compare_toggle"]  = False
+    st.session_state["selected_ticker"] = None
+    st.session_state["reset_sidebar"]   = True   # picked up immediately below
+
 # ── Sidebar scroll reset ──────────────────────────────────────────────────────
-# When home button is clicked we set reset_sidebar=True before rerun.
-# On this rerun we inject JS to scroll the sidebar back to the top,
-# then clear the flag so it only fires once.
+# Runs AFTER home_reset so it catches the flag set above in the same rerun.
 if st.session_state.pop("reset_sidebar", False):
     components.html(
         """
         <script>
         (function() {
-            // Scroll sidebar inner div to top smoothly
             const sel = '[data-testid="stSidebar"] > div:first-child';
             const sidebar = window.parent.document.querySelector(sel);
             if (sidebar) sidebar.scrollTo({ top: 0, behavior: "smooth" });
@@ -60,7 +70,6 @@ if st.session_state.pop("reset_sidebar", False):
     )
 
 # ── Sidebar → config ──────────────────────────────────────────────────────────
-# Sidebar renders here but we run the pipeline before the main content
 config   = render_sidebar()
 ticker_a = config["ticker"]
 ticker_b = config["ticker_b"] if config["compare"] else ""
@@ -128,17 +137,17 @@ if st.session_state["results"]:
         col_a, col_b = st.columns(2)
         with col_a:
             render_company_header(res["info"],   res["ticker"],   res["summary"])
-            render_anomaly_timeline(res["df"])
+            render_anomaly_timeline(res["df"], key_prefix="a")
             render_chart_tabs(res["df"],   res["ticker"])
             render_anomaly_table(res["df"],   res["ticker"])
         with col_b:
             render_company_header(res["info_b"], res["ticker_b"], res["summary_b"])
-            render_anomaly_timeline(res["df_b"])
+            render_anomaly_timeline(res["df_b"], key_prefix="b")
             render_chart_tabs(res["df_b"], res["ticker_b"])
             render_anomaly_table(res["df_b"], res["ticker_b"])
     else:
         render_company_header(res["info"], res["ticker"], res["summary"])
-        render_anomaly_timeline(res["df"])
+        render_anomaly_timeline(res["df"], key_prefix="a")
         render_chart_tabs(res["df"], res["ticker"])
         render_anomaly_table(res["df"], res["ticker"])
 
