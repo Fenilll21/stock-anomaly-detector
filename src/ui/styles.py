@@ -56,11 +56,12 @@ def inject_styles() -> None:
             font-family: var(--font-body) !important;
         }
 
-        /* ── HIDE STREAMLIT CHROME ──────────────────────────────────────── */
-        #MainMenu, footer, header { visibility: hidden; }
+        /* ── STREAMLIT CHROME ───────────────────────────────────────────── */
+        /* Base dark theme is handled by .streamlit/config.toml — we do NOT
+           touch visibility/display of any Streamlit chrome element here.
+           Doing so risks breaking the sidebar toggle button.            */
         .block-container {
-            padding: 2rem 2.5rem 4rem !important;
-            max-width: 1400px !important;
+            padding-top: 1rem !important;
         }
 
         /* ── TYPOGRAPHY ─────────────────────────────────────────────────── */
@@ -89,6 +90,56 @@ def inject_styles() -> None:
             background-color: var(--bg-surface) !important;
             border-right: 1px solid var(--border) !important;
         }
+        /* Keep sidebar visible when collapsed */
+        [data-testid="stSidebar"][aria-expanded="false"] {
+            margin-left: 0 !important;
+            visibility: visible !important;
+        }
+
+        /* Collapse button — inside the open sidebar */
+        [data-testid="stSidebarCollapseButton"],
+        [data-testid="stSidebarCollapseButton"] button {
+            visibility: visible !important;
+            display: flex !important;
+            background: var(--bg-elevated) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 6px !important;
+            color: var(--text-secondary) !important;
+        }
+        [data-testid="stSidebarCollapseButton"] button:hover {
+            background: var(--accent-dim) !important;
+            border-color: var(--border-active) !important;
+            color: var(--accent) !important;
+        }
+
+        /* Expand button — shown top-left when sidebar is collapsed.
+           Let Streamlit position it; we only restyle it.         */
+        [data-testid="stSidebarCollapsedControl"] {
+            visibility: visible !important;
+            background: var(--bg-surface) !important;
+            border: 1px solid var(--border-active) !important;
+            border-radius: 8px !important;
+            padding: 0.3rem !important;
+            box-shadow: 0 0 14px var(--accent-glow) !important;
+            z-index: 9999 !important;
+        }
+        [data-testid="stSidebarCollapsedControl"]:hover {
+            background: var(--accent-dim) !important;
+            border-color: var(--accent) !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] button {
+            visibility: visible !important;
+            background: transparent !important;
+            border: none !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] svg {
+            fill: var(--accent) !important;
+            stroke: var(--accent) !important;
+        }
+
+        /* Hide auto-generated anchor link icons on headings */
+        .stMarkdown h1 a, .stMarkdown h2 a,
+        .stMarkdown h3 a, .stMarkdown h4 a { display: none !important; }
         [data-testid="stSidebar"] > div:first-child {
             padding: 1.5rem 1.25rem !important;
         }
@@ -292,7 +343,13 @@ def inject_styles() -> None:
             overflow: hidden !important;
             border: 1px solid var(--border) !important;
         }
-        .dvn-scroller { background: var(--bg-surface) !important; }
+        /* Ensure the canvas-based grid has a visible background */
+        [data-testid="stDataFrame"] > div,
+        .dvn-scroller,
+        .stDataFrame iframe {
+            background: var(--bg-elevated) !important;
+            color: var(--text-primary) !important;
+        }
 
         /* ── ALERTS ──────────────────────────────────────────────────────── */
         [data-testid="stAlert"] {
@@ -419,6 +476,31 @@ def inject_styles() -> None:
             letter-spacing: 0.08em;
             margin: 2rem 0 0.75rem;
         }
+
+        .example-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+        }
+        .example-table th {
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .example-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+        .example-table tr:last-child td { border-bottom: none; }
+        .example-table tr:hover td { background: var(--bg-elevated); }
         </style>
         """,
         unsafe_allow_html=True,
