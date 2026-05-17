@@ -76,6 +76,13 @@ def render_live_price_banner(ticker_a: str, ticker_b: str = "") -> None:
     if not st.session_state.get("results"):
         return
 
+    res = st.session_state["results"]
+
+    # Only show ticker_b if comparison was actually run with results
+    # Prevents showing live price for ticker_b just because it's typed in sidebar
+    if not res.get("compare") or res.get("df_b") is None:
+        ticker_b = ""
+
     tickers = [t for t in [ticker_a, ticker_b] if t]
     if not tickers:
         return
