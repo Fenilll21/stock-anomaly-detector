@@ -106,12 +106,36 @@ def inject_styles() -> None:
         }
 
         /* ── SLIDERS ─────────────────────────────────────────────────── */
-        [data-testid="stSlider"] > div > div > div { background: var(--accent) !important; }
+        /* Accent colour on the filled track portion only */
+        [data-testid="stSlider"] [role="slider"] { background: var(--accent) !important; }
+        [data-testid="stSlider"] > div > div > div > div:first-child {
+            background: var(--accent) !important;
+        }
+        /* Thumb tooltip value */
         [data-testid="stSlider"] [data-testid="stThumbValue"] {
             background: var(--accent) !important;
             color: #fff !important;
             font-family: var(--mono) !important;
             font-size: 0.7rem !important;
+        }
+        /* Min/max labels — always visible, no highlight */
+        [data-testid="stTickBarMin"],
+        [data-testid="stTickBarMax"] {
+            background: transparent !important;
+            color: var(--text-3) !important;
+            font-family: var(--mono) !important;
+            font-size: 0.68rem !important;
+            padding: 0 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        /* Streamlit hides these on non-hover — force always shown */
+        [data-testid="stSlider"]:not(:hover) [data-testid="stTickBarMin"],
+        [data-testid="stSlider"]:not(:hover) [data-testid="stTickBarMax"] {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
         }
 
         /* ── BUTTONS ─────────────────────────────────────────────────── */
@@ -132,16 +156,19 @@ def inject_styles() -> None:
             color: var(--accent) !important;
         }
         [data-testid="stButton"] button[kind="primary"] {
-            background: var(--accent) !important;
-            border: none !important;
-            color: #fff !important;
+            background: transparent !important;
+            border: 1.5px solid var(--accent) !important;
+            color: var(--accent) !important;
             font-weight: 600 !important;
             font-size: 0.8rem !important;
             padding: 0.45rem 1.1rem !important;
             letter-spacing: 0.01em !important;
+            box-shadow: none !important;
         }
         [data-testid="stButton"] button[kind="primary"]:hover {
-            background: var(--accent-hover) !important;
+            background: var(--accent-dim) !important;
+            border-color: var(--accent) !important;
+            color: var(--accent) !important;
         }
         [data-testid="stDownloadButton"] button {
             background: transparent !important;
