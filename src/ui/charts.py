@@ -193,10 +193,34 @@ def render_empty_state() -> None:
         "<p class='example-section-title'>Suggested tickers</p>",
         unsafe_allow_html=True,
     )
-    st.dataframe(
-        pd.DataFrame(_EXAMPLE_TICKERS),
-        use_container_width=True,
-        hide_index=True,
+
+    # HTML table — immune to Streamlit's dark-theme dataframe rendering bugs
+    rows = ""
+    tickers = _EXAMPLE_TICKERS["Ticker"]
+    assets  = _EXAMPLE_TICKERS["Asset"]
+    whys    = _EXAMPLE_TICKERS["Why"]
+    for t, a, w in zip(tickers, assets, whys):
+        rows += f"""
+        <tr>
+            <td><span class='ticker-badge'>{t}</span></td>
+            <td style='color:#f0f6ff;font-weight:500;'>{a}</td>
+            <td style='color:#8da3be;'>{w}</td>
+        </tr>"""
+
+    st.markdown(
+        f"""
+        <table class='example-table'>
+            <thead>
+                <tr>
+                    <th>Ticker</th>
+                    <th>Asset</th>
+                    <th>Why try it</th>
+                </tr>
+            </thead>
+            <tbody>{rows}</tbody>
+        </table>
+        """,
+        unsafe_allow_html=True,
     )
 
 
