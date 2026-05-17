@@ -7,26 +7,13 @@ Stock Market Anomaly Detector.
 Functions
 ---------
 render_chart_tabs(df, ticker)
-    Renders the five analysis tabs, each with a Plotly chart and a
-    short description. Call only when results are available.
+    Five analysis tabs with Plotly charts. Call when results exist.
 
 render_anomaly_table(df, ticker)
-    Renders the expandable raw anomaly dataframe with a CSV download
-    button. Call only when results are available.
+    Expandable raw anomaly dataframe + CSV download button.
 
 render_empty_state()
-    Renders the placeholder UI shown before the first analysis run,
-    including the suggested tickers table.
-
-Usage
------
-    from src.ui.charts import render_chart_tabs, render_anomaly_table, render_empty_state
-
-    if st.session_state["results"]:
-        render_chart_tabs(df, ticker)
-        render_anomaly_table(df, ticker)
-    else:
-        render_empty_state()
+    Placeholder UI shown before the first analysis run.
 """
 
 import pandas as pd
@@ -47,7 +34,6 @@ _ANOMALY_COLUMNS = [
     "ZScore_Anomaly", "IForest_Anomaly", "Anomaly_Type",
 ]
 
-# Format spec for the styled dataframe
 _COLUMN_FORMATS = {
     "Open":         "${:.2f}",
     "High":         "${:.2f}",
@@ -58,7 +44,6 @@ _COLUMN_FORMATS = {
     "Price_Range":  "{:.2f}%",
 }
 
-# Suggested tickers shown in the empty state
 _EXAMPLE_TICKERS = {
     "Ticker": ["AAPL", "TSLA", "NVDA", "BTC-USD", "SPY",  "AMZN"],
     "Asset":  ["Apple", "Tesla", "NVIDIA", "Bitcoin", "S&P 500 ETF", "Amazon"],
@@ -80,9 +65,9 @@ def render_chart_tabs(df: pd.DataFrame, ticker: str) -> None:
     Parameters
     ----------
     df : pd.DataFrame
-        Processed dataframe returned by run_anomaly_detection().
+        Processed dataframe from run_anomaly_detection().
     ticker : str
-        Upper-cased ticker symbol, e.g. ``"AAPL"``.
+        Upper-cased ticker symbol e.g. "AAPL".
     """
     st.markdown("<p class='section-label'>Analysis</p>", unsafe_allow_html=True)
 
@@ -99,50 +84,69 @@ def render_chart_tabs(df: pd.DataFrame, ticker: str) -> None:
             "Candlestick chart with anomaly markers overlaid. "
             "Red volume bars indicate anomalous sessions."
         )
-        st.plotly_chart(plot_price_anomalies(df, ticker), use_container_width=True)
+        st.plotly_chart(
+            plot_price_anomalies(df, ticker),
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
 
     with tab2:
         _chart_desc(
             "Absolute Z-scores per feature over time. "
             "The shaded band marks the anomaly threshold zone."
         )
-        st.plotly_chart(plot_zscore_heatmap(df), use_container_width=True)
+        st.plotly_chart(
+            plot_zscore_heatmap(df),
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
 
     with tab3:
         _chart_desc(
-            "Isolation Forest anomaly scores — higher values indicate more "
-            "anomalous sessions. Red bars were flagged by the model."
+            "Isolation Forest anomaly scores — higher = more anomalous. "
+            "Red bars were flagged by the model."
         )
-        st.plotly_chart(plot_iforest_scores(df), use_container_width=True)
+        st.plotly_chart(
+            plot_iforest_scores(df),
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
 
     with tab4:
         _chart_desc(
             "Daily return distribution split by normal vs. anomalous days. "
             "Anomalies cluster in the tails."
         )
-        st.plotly_chart(plot_return_distribution(df), use_container_width=True)
+        st.plotly_chart(
+            plot_return_distribution(df),
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
 
     with tab5:
         _chart_desc(
-            "Each point is a trading day plotted in feature space. "
+            "Each point is a trading day in feature space. "
             "Colour encodes which detector(s) flagged it."
         )
-        st.plotly_chart(plot_anomaly_scatter(df), use_container_width=True)
+        st.plotly_chart(
+            plot_anomaly_scatter(df),
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
 
     st.markdown("<br/>", unsafe_allow_html=True)
 
 
 def render_anomaly_table(df: pd.DataFrame, ticker: str) -> None:
     """
-    Render the expandable raw anomaly dataframe and CSV download button.
+    Expandable raw anomaly dataframe with CSV download.
 
     Parameters
     ----------
     df : pd.DataFrame
-        Processed dataframe returned by run_anomaly_detection(). Must
-        contain an ``Is_Anomaly`` boolean column.
+        Must contain an Is_Anomaly boolean column.
     ticker : str
-        Upper-cased ticker symbol used for the CSV filename.
+        Used for the CSV filename.
     """
     anomaly_df = (
         df[df["Is_Anomaly"]][_ANOMALY_COLUMNS]
@@ -158,53 +162,51 @@ def render_anomaly_table(df: pd.DataFrame, ticker: str) -> None:
         st.dataframe(
             anomaly_df.style.format(_COLUMN_FORMATS),
             use_container_width=True,
-            height=380,
+            height=360,
         )
 
-        csv = anomaly_df.reset_index().to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="⬇  Download CSV",
-            data=csv,
-            file_name=f"{ticker}_anomalies.csv",
-            mime="text/csv",
-        )
+        col_dl, col_rest = st.columns([1.5, 8.5])
+        with col_dl:
+            csv = anomaly_df.reset_index().to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="⬇  Download CSV",
+                data=csv,
+                file_name=f"{ticker}_anomalies.csv",
+                mime="text/csv",
+            )
 
 
 def render_empty_state() -> None:
     """
-    Render the placeholder shown before the first analysis run.
-
-    Displays a centred call-to-action card and a table of suggested
-    tickers to help new users get started quickly.
+    Placeholder shown before the first analysis run.
     """
     st.markdown(
         """
         <div class='empty-state'>
             <span class='empty-state-icon'>📡</span>
             <h3>Ready to scan the market</h3>
-            <p>Configure your ticker symbol and parameters in the sidebar,
-               then hit <strong>Run Analysis</strong> to begin.</p>
+            <p>Enter a ticker and hit <strong>Run Analysis</strong> above to begin.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     st.markdown(
-        "<p class='example-section-title'>Suggested tickers</p>",
+        "<p class='example-section-title'>Suggested tickers to try</p>",
         unsafe_allow_html=True,
     )
 
-    # HTML table — immune to Streamlit's dark-theme dataframe rendering bugs
     rows = ""
-    tickers = _EXAMPLE_TICKERS["Ticker"]
-    assets  = _EXAMPLE_TICKERS["Asset"]
-    whys    = _EXAMPLE_TICKERS["Why"]
-    for t, a, w in zip(tickers, assets, whys):
+    for t, a, w in zip(
+        _EXAMPLE_TICKERS["Ticker"],
+        _EXAMPLE_TICKERS["Asset"],
+        _EXAMPLE_TICKERS["Why"],
+    ):
         rows += f"""
         <tr>
             <td><span class='ticker-badge'>{t}</span></td>
-            <td style='color:#f0f6ff;font-weight:500;'>{a}</td>
-            <td style='color:#8da3be;'>{w}</td>
+            <td style='color:#1c2128;font-weight:500;'>{a}</td>
+            <td>{w}</td>
         </tr>"""
 
     st.markdown(
@@ -227,7 +229,7 @@ def render_empty_state() -> None:
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 def _chart_desc(text: str) -> None:
-    """Render a styled chart description above each Plotly chart."""
+    """Styled description line above each chart."""
     st.markdown(
         f"<p class='chart-desc'>{text}</p>",
         unsafe_allow_html=True,
