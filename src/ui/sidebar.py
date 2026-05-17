@@ -2,7 +2,7 @@
 src/ui/sidebar.py
 -----------------
 Collapsible sidebar — hidden by default, slides in on toggle.
-Clean dark controls with minimal chrome.
+Includes comparison mode toggle for side-by-side ticker analysis.
 """
 
 import streamlit as st
@@ -12,112 +12,195 @@ _QUICK_TICKERS = ["AAPL", "TSLA", "NVDA", "MSFT", "BTC-USD", "SPY"]
 
 
 def render_sidebar() -> dict:
+    """
+    Render the full sidebar and return a config dict.
+
+    Returns
+    -------
+    dict
+        Keys: ticker, ticker_b, compare, start, end,
+              zscore_threshold, contamination, run.
+    """
     with st.sidebar:
-        # ── Brand ─────────────────────────────────────────────────────
-        st.markdown(
-            """
-            <div style='margin-bottom:1.25rem;'>
-                <div style='font-family:"Plus Jakarta Sans",sans-serif;
-                            font-size:0.95rem;font-weight:700;
-                            color:#fff;letter-spacing:-0.02em;'>
-                    Anomaly Radar
-                </div>
-                <div style='font-family:"JetBrains Mono",monospace;
-                            font-size:0.62rem;color:#52525b;
-                            margin-top:0.15rem;letter-spacing:0.06em;'>
-                    Z-SCORE · ISOLATION FOREST
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        _render_brand()
+        st.markdown("<hr style='margin:0.75rem 0'/>", unsafe_allow_html=True)
 
-        st.markdown("<div class='sidebar-section'>Ticker</div>", unsafe_allow_html=True)
+        ticker                    = _render_ticker_section("A", "AAPL", "sb_a")
+        compare, ticker_b         = _render_comparison_section()
+        st.markdown("<hr style='margin:0.75rem 0'/>", unsafe_allow_html=True)
 
-        ticker = st.text_input(
-            "Ticker",
-            value="AAPL",
-            max_chars=10,
-            label_visibility="collapsed",
-            placeholder="e.g. AAPL, TSLA, BTC-USD",
-        ).upper().strip()
+        start_date, end_date      = _render_date_section()
+        st.markdown("<hr style='margin:0.75rem 0'/>", unsafe_allow_html=True)
 
-        # Quick picks — 3 per row
-        row1 = st.columns(3)
-        row2 = st.columns(3)
-        all_cols = row1 + row2
-        for col, qt in zip(all_cols, _QUICK_TICKERS):
-            if col.button(qt, use_container_width=True, key=f"sb_{qt}"):
-                ticker = qt
+        zscore_threshold, contamination = _render_detector_section()
+        st.markdown("<hr style='margin:0.75rem 0'/>", unsafe_allow_html=True)
 
-        # ── Date range ────────────────────────────────────────────────
-        st.markdown("<div class='sidebar-section'>Date Range</div>", unsafe_allow_html=True)
+        run = st.button("▶  Run Analysis", use_container_width=True, type="primary")
 
-        default_end   = date.today()
-        default_start = default_end - timedelta(days=365 * 2)
-
-        col_s, col_e = st.columns(2)
-        with col_s:
-            start_date = st.date_input(
-                "From", value=default_start,
-                max_value=default_end,
-                label_visibility="collapsed",
-            )
-        with col_e:
-            end_date = st.date_input(
-                "To", value=default_end,
-                max_value=default_end,
-                label_visibility="collapsed",
-            )
-
-        # ── Detector settings ─────────────────────────────────────────
-        st.markdown("<div class='sidebar-section'>Detection</div>", unsafe_allow_html=True)
-
-        st.caption("Z-Score Threshold")
-        zscore_threshold = st.slider(
-            "Z-Score", min_value=1.5, max_value=5.0,
-            value=2.5, step=0.1,
-            label_visibility="collapsed",
-            help="Days whose |Z-score| exceeds this are flagged.",
-        )
-
-        st.caption("IF Contamination")
-        contamination = st.slider(
-            "Contamination", min_value=0.01, max_value=0.20,
-            value=0.05, step=0.01, format="%.2f",
-            label_visibility="collapsed",
-            help="Expected proportion of anomalies (0.01–0.20).",
-        )
-
-        # ── Run ───────────────────────────────────────────────────────
-        st.markdown("<div class='sidebar-section'></div>", unsafe_allow_html=True)
-        run = st.button(
-            "▶  Run Analysis",
-            use_container_width=True,
-            type="primary",
-        )
-
-        # ── Footer ────────────────────────────────────────────────────
-        st.markdown(
-            """
-            <div style='margin-top:2rem;padding-top:1rem;
-                        border-top:1px solid rgba(255,255,255,0.07);'>
-                <div style='font-family:"JetBrains Mono",monospace;
-                            font-size:0.6rem;color:#52525b;line-height:1.8;'>
-                    Data via yfinance<br>
-                    scikit-learn IForest<br>
-                    Plotly · Streamlit
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        _render_footer()
 
     return {
         "ticker":           ticker,
+        "ticker_b":         ticker_b,
+        "compare":          compare,
         "start":            str(start_date),
         "end":              str(end_date),
         "zscore_threshold": float(zscore_threshold),
         "contamination":    float(contamination),
         "run":              run,
     }
+
+
+# ── Private helpers ───────────────────────────────────────────────────────────
+
+def _render_brand() -> None:
+    st.markdown(
+        """
+        <div style='margin-bottom:0.25rem;'>
+            <div style='font-family:"Plus Jakarta Sans",sans-serif;
+                        font-size:0.95rem;font-weight:700;
+                        color:#fff;letter-spacing:-0.02em;'>
+                Anomaly Radar
+            </div>
+            <div style='font-family:"JetBrains Mono",monospace;
+                        font-size:0.6rem;color:#52525b;
+                        margin-top:0.1rem;letter-spacing:0.08em;'>
+                Z-SCORE · ISOLATION FOREST
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_ticker_section(label: str, default: str, key_prefix: str) -> str:
+    """
+    Ticker text input + quick-pick chips.
+    Reads st.session_state["selected_ticker"] if set (from clicking
+    a suggested ticker on the empty state page).
+
+    Parameters
+    ----------
+    label       : "A" for primary, "B" for comparison ticker
+    default     : default ticker value
+    key_prefix  : unique key prefix to avoid Streamlit widget key collisions
+    """
+    st.markdown(
+        f"<div class='sidebar-section'>Ticker {label}</div>",
+        unsafe_allow_html=True,
+    )
+
+    # If user clicked a suggested ticker, inject it directly into the
+    # widget's own session state key — this is the only reliable way to
+    # programmatically update a st.text_input that has a key.
+    if label == "A" and st.session_state.get("selected_ticker"):
+        st.session_state[f"{key_prefix}_input"] = st.session_state.pop("selected_ticker")
+
+    ticker = st.text_input(
+        f"Ticker {label}",
+        value=default,
+        max_chars=10,
+        label_visibility="collapsed",
+        placeholder="e.g. AAPL, TSLA, BTC-USD",
+        key=f"{key_prefix}_input",
+    ).upper().strip()
+
+    row1 = st.columns(3)
+    row2 = st.columns(3)
+    for col, qt in zip(row1 + row2, _QUICK_TICKERS):
+        if col.button(qt, use_container_width=True, key=f"{key_prefix}_{qt}"):
+            ticker = qt
+
+    return ticker
+
+
+def _render_comparison_section() -> tuple[bool, str]:
+    """
+    Comparison mode toggle. When enabled, shows a second ticker input.
+
+    Returns
+    -------
+    tuple[bool, str]
+        (compare_enabled, ticker_b)
+    """
+    st.markdown(
+        "<div class='sidebar-section'>Comparison Mode</div>",
+        unsafe_allow_html=True,
+    )
+
+    compare = st.toggle(
+        "Compare two tickers side by side",
+        value=False,
+        key="compare_toggle",
+        help="Run anomaly detection on two tickers and view charts side by side.",
+    )
+
+    ticker_b = ""
+    if compare:
+        ticker_b = _render_ticker_section("B", "MSFT", "sb_b")
+
+    return compare, ticker_b
+
+
+def _render_date_section() -> tuple[date, date]:
+    """Start / end date inputs side by side."""
+    st.markdown("<div class='sidebar-section'>Date Range</div>", unsafe_allow_html=True)
+
+    default_end   = date.today()
+    default_start = default_end - timedelta(days=365 * 2)
+
+    col_s, col_e = st.columns(2)
+    with col_s:
+        start_date = st.date_input(
+            "From", value=default_start,
+            max_value=default_end,
+            label_visibility="collapsed",
+        )
+    with col_e:
+        end_date = st.date_input(
+            "To", value=default_end,
+            max_value=default_end,
+            label_visibility="collapsed",
+        )
+
+    return start_date, end_date
+
+
+def _render_detector_section() -> tuple[float, float]:
+    """Z-Score threshold and IF contamination sliders."""
+    st.markdown("<div class='sidebar-section'>Detection</div>", unsafe_allow_html=True)
+
+    st.caption("Z-Score Threshold")
+    zscore_threshold = st.slider(
+        "Z-Score", min_value=1.5, max_value=5.0,
+        value=2.5, step=0.1,
+        label_visibility="collapsed",
+        help="Days whose |Z-score| exceeds this are flagged. Lower = more sensitive.",
+    )
+
+    st.caption("IF Contamination")
+    contamination = st.slider(
+        "Contamination", min_value=0.01, max_value=0.20,
+        value=0.05, step=0.01, format="%.2f",
+        label_visibility="collapsed",
+        help="Expected proportion of anomalies (0.01–0.20).",
+    )
+
+    return zscore_threshold, contamination
+
+
+def _render_footer() -> None:
+    st.markdown(
+        """
+        <div style='margin-top:2rem;padding-top:1rem;
+                    border-top:1px solid rgba(255,255,255,0.07);'>
+            <div style='font-family:"JetBrains Mono",monospace;
+                        font-size:0.6rem;color:#52525b;line-height:1.9;'>
+                Data via yfinance<br>
+                scikit-learn IForest<br>
+                Plotly · Streamlit
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
