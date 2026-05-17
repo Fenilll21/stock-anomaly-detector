@@ -8,7 +8,10 @@ Returns clean, validated DataFrames ready for anomaly detection.
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
+import streamlit as st
 
+
+@st.cache_data(ttl=3600, show_spinner=False)
 
 def fetch_stock_data(
     ticker: str,
@@ -71,6 +74,8 @@ def fetch_stock_data(
 
     return df
 
+
+@st.cache_data(ttl=3600, show_spinner=False)
 
 def get_ticker_info(ticker: str) -> dict:
     """
