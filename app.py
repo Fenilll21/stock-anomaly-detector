@@ -26,7 +26,7 @@ st.set_page_config(
     page_title="Anomaly Radar",
     page_icon="📡",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ── Styles ────────────────────────────────────────────────────────────────────
@@ -40,8 +40,7 @@ if "error" not in st.session_state:
 if "reset_sidebar" not in st.session_state:
     st.session_state["reset_sidebar"] = False
 
-# ── Home reset (must run BEFORE sidebar renders) ─────────────────────────────
-# Runs FIRST so reset_sidebar flag is set before the scroll check below.
+# ── Home reset (must run BEFORE sidebar renders) ──────────────────────────────
 if st.session_state.pop("home_reset", False):
     st.session_state["results"]         = None
     st.session_state["error"]           = None
@@ -51,10 +50,9 @@ if st.session_state.pop("home_reset", False):
     st.session_state["sb_b_pending"]    = None
     st.session_state["compare_toggle"]  = False
     st.session_state["selected_ticker"] = None
-    st.session_state["reset_sidebar"]   = True   # picked up immediately below
+    st.session_state["reset_sidebar"]   = True
 
 # ── Sidebar scroll reset ──────────────────────────────────────────────────────
-# Runs AFTER home_reset so it catches the flag set above in the same rerun.
 if st.session_state.pop("reset_sidebar", False):
     components.html(
         """
@@ -75,8 +73,6 @@ ticker_a = config["ticker"]
 ticker_b = config["ticker_b"] if config["compare"] else ""
 
 # ── Run pipeline FIRST ────────────────────────────────────────────────────────
-# This must happen before render_page_header() so that session state
-# is populated when the home button + live banner check it
 if config["run"]:
     st.session_state["results"] = None
     st.session_state["error"]   = None
@@ -116,9 +112,7 @@ if config["run"]:
     except Exception as ex:
         st.session_state["error"] = f"Unexpected error: {ex}"
 
-# ── NOW render page header + live banner ──────────────────────────────────────
-# Session state is fully populated at this point — home button and
-# live banner will correctly reflect the current state
+# ── Page header + live banner ─────────────────────────────────────────────────
 render_page_header()
 render_live_price_banner(ticker_a, ticker_b)
 

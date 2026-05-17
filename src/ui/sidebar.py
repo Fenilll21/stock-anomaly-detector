@@ -90,26 +90,47 @@ def _render_ticker_section(label: str, default: str, key_prefix: str) -> str:
         unsafe_allow_html=True,
     )
 
-    # If user clicked a suggested ticker, inject it directly into the
-    # widget's own session state key — this is the only reliable way to
-    # programmatically update a st.text_input that has a key.
-    if label == "A" and st.session_state.get("selected_ticker"):
-        st.session_state[f"{key_prefix}_input"] = st.session_state.pop("selected_ticker")
+    # ── Transfer any pending value BEFORE the widget renders ────────────
+    # Streamlit forbids writing to a widget key after it's instantiated.
+    # So we use a separate "pending" key as a one-rerun buffer:
+    #   click → write to pending → rerun → transfer to widget key → render
+    pending_key  = f"{key_prefix}_pending"
+    widget_key   = f"{key_prefix}_input"
 
+    # Source 1: quick-pick button clicked in sidebar
+    if st.session_state.get(pending_key):
+        st.session_state[widget_key] = st.session_state.pop(pending_key)
+
+    # Source 2: quick-start row clicked on empty state page
+    if label == "A" and st.session_state.get("selected_ticker"):
+        st.session_state[widget_key] = st.session_state.pop("selected_ticker")
+
+    # ── Widget renders here — reads from session state ────────────────
     ticker = st.text_input(
         f"Ticker {label}",
         value=default,
         max_chars=10,
         label_visibility="collapsed",
         placeholder="e.g. AAPL, TSLA, BTC-USD",
-        key=f"{key_prefix}_input",
+        key=widget_key,
     ).upper().strip()
+
+    # ── Quick-pick buttons ────────────────────────────────────────────
+    current = st.session_state.get(widget_key, default).upper().strip()
 
     row1 = st.columns(3)
     row2 = st.columns(3)
     for col, qt in zip(row1 + row2, _QUICK_TICKERS):
-        if col.button(qt, use_container_width=True, key=f"{key_prefix}_{qt}"):
-            ticker = qt
+        is_active = current == qt.upper()
+        if col.button(
+            qt,
+            use_container_width=True,
+            key=f"{key_prefix}_{qt}",
+            type="primary" if is_active else "secondary",
+        ):
+            # Write to pending — picked up on the next rerun before widget renders
+            st.session_state[pending_key] = qt
+            st.rerun()
 
     return ticker
 

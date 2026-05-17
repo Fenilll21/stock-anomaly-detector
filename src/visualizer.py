@@ -165,3 +165,78 @@ def plot_anomaly_scatter(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(**_base_layout("Feature Space — Return vs Volume"),
                       xaxis_title="Volume", yaxis_title="Daily Return (%)")
     return fig
+
+# ── Chart 6: Anomaly calendar heatmap ──────────────────────────────────────
+
+def plot_calendar_heatmap(df: pd.DataFrame) -> go.Figure:
+    """
+    Calendar heatmap — anomaly intensity by month (rows) and day-of-month (cols).
+    Each cell shows the count of anomalous days in that month/day combination.
+    Gives an instant visual of which periods cluster with unusual activity.
+    """
+    anomalies = df[df["Is_Anomaly"]].copy()
+    anomalies["month"] = anomalies.index.month
+    anomalies["day"]   = anomalies.index.day
+
+    # Pivot: rows = months, cols = days 1–31
+    pivot = (
+        anomalies.groupby(["month", "day"])
+        .size()
+        .reset_index(name="count")
+        .pivot(index="month", columns="day", values="count")
+        .reindex(index=range(1, 13), columns=range(1, 32))
+        .fillna(0)
+    )
+
+    month_labels = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ]
+
+    fig = go.Figure(
+        go.Heatmap(
+            z=pivot.values,
+            x=list(range(1, 32)),
+            y=month_labels,
+            colorscale=[
+                [0.0,  "#111111"],
+                [0.01, "#1e3a5f"],
+                [0.3,  "#2563eb"],
+                [0.6,  "#3b82f6"],
+                [1.0,  "#ef4444"],
+            ],
+            showscale=True,
+            colorbar=dict(
+                title=dict(text="Anomalies", font=dict(color=COLOURS["text"], size=11)),
+                tickfont=dict(color=COLOURS["text"], size=10, family="JetBrains Mono"),
+                bgcolor="rgba(0,0,0,0)",
+                borderwidth=0,
+                thickness=12,
+            ),
+            hovertemplate=(
+                "<b>%{y} · Day %{x}</b><br>"
+                "Anomalies: %{z:.0f}<extra></extra>"
+            ),
+            xgap=3,
+            ygap=3,
+        )
+    )
+
+    layout = _base_layout("Anomaly Calendar — Intensity by Month & Day", height=420)
+    layout["xaxis"] = dict(
+        title="Day of Month",
+        tickmode="linear", tick0=1, dtick=1,
+        gridcolor="rgba(0,0,0,0)",
+        tickfont=dict(size=9, family="JetBrains Mono"),
+        linecolor="rgba(255,255,255,0.07)",
+    )
+    layout["yaxis"] = dict(
+        title="",
+        tickfont=dict(size=11, family="JetBrains Mono"),
+        gridcolor="rgba(0,0,0,0)",
+        linecolor="rgba(255,255,255,0.07)",
+        autorange="reversed",
+    )
+
+    fig.update_layout(**layout)
+    return fig
