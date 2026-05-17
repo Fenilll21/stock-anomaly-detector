@@ -18,16 +18,16 @@ from plotly.subplots import make_subplots
 
 # ── Colour palette ──────────────────────────────────────────────────────────
 COLOURS = {
-    "price":        "#4C9BE8",      # blue — normal price line
-    "normal_vol":   "#7FB3D3",      # muted blue — normal volume bars
-    "anomaly":      "#E8534C",      # red — anomaly markers
-    "zscore_only":  "#F5A623",      # amber — Z-score only anomalies
-    "iforest_only": "#9B59B6",      # purple — Isolation Forest only
-    "both":         "#E8534C",      # red — caught by both methods
-    "grid":         "rgba(200,200,200,0.15)",
-    "background":   "#0E1117",      # matches Streamlit dark theme
-    "paper":        "#0E1117",
-    "text":         "#FAFAFA",
+    "price":        "#0969da",      # GitHub blue  — normal price line
+    "normal_vol":   "#aac8e8",      # light blue   — normal volume bars
+    "anomaly":      "#cf222e",      # GitHub red   — anomaly markers
+    "zscore_only":  "#9a6700",      # GitHub amber — Z-score only
+    "iforest_only": "#8250df",      # GitHub purple — Isolation Forest only
+    "both":         "#cf222e",      # red          — caught by both methods
+    "grid":         "rgba(208, 215, 222, 0.6)",  # --border light
+    "background":   "#ffffff",      # --bg-surface
+    "paper":        "#f6f8fa",      # --bg-base
+    "text":         "#1c2128",      # --text-primary
 }
 
 ANOMALY_COLOUR_MAP = {
@@ -40,19 +40,44 @@ ANOMALY_COLOUR_MAP = {
 def _base_layout(title: str, height: int = 450) -> dict:
     """Shared layout settings applied to every chart."""
     return dict(
-        title=dict(text=title, font=dict(size=16, color=COLOURS["text"])),
+        title=dict(
+            text=title,
+            font=dict(size=14, color=COLOURS["text"], family="Geist, sans-serif"),
+        ),
         height=height,
         paper_bgcolor=COLOURS["paper"],
         plot_bgcolor=COLOURS["background"],
-        font=dict(color=COLOURS["text"], family="Inter, sans-serif"),
-        legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0),
+        font=dict(
+            color=COLOURS["text"],
+            family="Geist, sans-serif",
+            size=12,
+        ),
+        legend=dict(
+            bgcolor="rgba(246,248,250,0.9)",
+            bordercolor="rgba(208,215,222,0.8)",
+            borderwidth=1,
+            font=dict(size=11),
+        ),
         xaxis=dict(
             gridcolor=COLOURS["grid"],
-            showspikes=True, spikecolor="#888", spikethickness=1,
+            linecolor=COLOURS["grid"],
+            showspikes=True,
+            spikecolor="#8c959f",
+            spikethickness=1,
+            tickfont=dict(size=11),
         ),
-        yaxis=dict(gridcolor=COLOURS["grid"]),
+        yaxis=dict(
+            gridcolor=COLOURS["grid"],
+            linecolor=COLOURS["grid"],
+            tickfont=dict(size=11),
+        ),
         hovermode="x unified",
-        margin=dict(l=60, r=20, t=60, b=40),
+        hoverlabel=dict(
+            bgcolor="#ffffff",
+            bordercolor=COLOURS["grid"],
+            font=dict(color=COLOURS["text"], size=12),
+        ),
+        margin=dict(l=60, r=20, t=55, b=40),
     )
 
 
@@ -77,8 +102,8 @@ def plot_price_anomalies(df: pd.DataFrame, ticker: str) -> go.Figure:
             open=df["Open"], high=df["High"],
             low=df["Low"],   close=df["Close"],
             name="OHLC",
-            increasing_line_color="#26A69A",
-            decreasing_line_color="#EF5350",
+            increasing_line_color="#1a7f37",   # GitHub green
+            decreasing_line_color="#cf222e",   # GitHub red
             showlegend=False,
         ),
         row=1, col=1,
@@ -90,7 +115,7 @@ def plot_price_anomalies(df: pd.DataFrame, ticker: str) -> go.Figure:
         go.Scatter(
             x=df.index, y=sma20,
             name="SMA 20",
-            line=dict(color="#F5A623", width=1.5, dash="dot"),
+            line=dict(color="#9a6700", width=1.5, dash="dot"),
         ),
         row=1, col=1,
     )
@@ -137,10 +162,10 @@ def plot_price_anomalies(df: pd.DataFrame, ticker: str) -> go.Figure:
         row=2, col=1,
     )
 
-    layout = _base_layout(f"{ticker} — Price & Volume Anomalies", height=600)
-    layout["xaxis2"] = dict(gridcolor=COLOURS["grid"])
-    layout["yaxis"]  = dict(gridcolor=COLOURS["grid"], title="Price (USD)")
-    layout["yaxis2"] = dict(gridcolor=COLOURS["grid"], title="Volume")
+    layout = _base_layout(f"{ticker} — Price & Volume Anomalies", height=580)
+    layout["xaxis2"] = dict(gridcolor=COLOURS["grid"], linecolor=COLOURS["grid"])
+    layout["yaxis"]  = dict(gridcolor=COLOURS["grid"], linecolor=COLOURS["grid"], title="Price (USD)")
+    layout["yaxis2"] = dict(gridcolor=COLOURS["grid"], linecolor=COLOURS["grid"], title="Volume")
     layout["xaxis_rangeslider_visible"] = False
 
     fig.update_layout(**layout)
@@ -151,30 +176,32 @@ def plot_price_anomalies(df: pd.DataFrame, ticker: str) -> go.Figure:
 
 def plot_zscore_heatmap(df: pd.DataFrame) -> go.Figure:
     """
-    Line chart showing the Z-scores of all three features over time.
+    Line chart showing Z-scores of all features over time.
     A horizontal threshold band makes it easy to spot breaches.
     """
-    zscore_cols = [c for c in df.columns if c.endswith("_ZScore")]
+    zscore_cols   = [c for c in df.columns if c.endswith("_ZScore")]
     feature_names = [c.replace("_ZScore", "").replace("_", " ") for c in zscore_cols]
 
     fig = go.Figure()
 
-    colours_cycle = ["#4C9BE8", "#26A69A", "#F5A623"]
+    colours_cycle = [COLOURS["price"], "#1a7f37", "#9a6700"]
     for col, label, colour in zip(zscore_cols, feature_names, colours_cycle):
         fig.add_trace(
             go.Scatter(
                 x=df.index, y=df[col],
                 name=label,
                 line=dict(color=colour, width=1.5),
-                hovertemplate=f"<b>%{{x|%Y-%m-%d}}</b><br>{label} |Z|: %{{y:.2f}}<extra></extra>",
+                hovertemplate=(
+                    f"<b>%{{x|%Y-%m-%d}}</b><br>{label} |Z|: %{{y:.2f}}<extra></extra>"
+                ),
             )
         )
 
-    # Threshold band — anything above this is anomalous
+    # Threshold band
     max_z = df[zscore_cols].max().max()
     fig.add_hrect(
         y0=2.5, y1=max(max_z * 1.05, 3.0),
-        fillcolor="rgba(232, 83, 76, 0.15)",
+        fillcolor="rgba(207, 34, 46, 0.08)",
         line_width=0,
         annotation_text="Anomaly zone",
         annotation_position="top left",
@@ -182,7 +209,9 @@ def plot_zscore_heatmap(df: pd.DataFrame) -> go.Figure:
     )
     fig.add_hline(
         y=2.5,
-        line_dash="dash", line_color=COLOURS["anomaly"], line_width=1,
+        line_dash="dash",
+        line_color=COLOURS["anomaly"],
+        line_width=1,
         annotation_text="Z = 2.5",
         annotation_font_color=COLOURS["anomaly"],
     )
@@ -199,16 +228,18 @@ def plot_zscore_heatmap(df: pd.DataFrame) -> go.Figure:
 def plot_iforest_scores(df: pd.DataFrame) -> go.Figure:
     """
     Bar chart of Isolation Forest scores (higher = more anomalous).
-    Bars are coloured by whether the day was flagged as an anomaly.
     """
-    colours = [COLOURS["anomaly"] if a else COLOURS["normal_vol"] for a in df["IForest_Anomaly"]]
+    colours = [
+        COLOURS["anomaly"] if a else COLOURS["normal_vol"]
+        for a in df["IForest_Anomaly"]
+    ]
 
     fig = go.Figure(
         go.Bar(
             x=df.index,
             y=df["IForest_Score"],
             marker_color=colours,
-            opacity=0.8,
+            opacity=0.85,
             hovertemplate=(
                 "<b>%{x|%Y-%m-%d}</b><br>"
                 "Anomaly Score: %{y:.4f}<extra></extra>"
@@ -228,8 +259,7 @@ def plot_iforest_scores(df: pd.DataFrame) -> go.Figure:
 
 def plot_return_distribution(df: pd.DataFrame) -> go.Figure:
     """
-    Histogram of daily returns, with anomalous returns overlaid in red.
-    Helps visualise whether anomalies cluster in the tails.
+    Histogram of daily returns, anomalous returns overlaid in red.
     """
     fig = go.Figure()
 
@@ -241,7 +271,7 @@ def plot_return_distribution(df: pd.DataFrame) -> go.Figure:
             x=normal_returns,
             name="Normal",
             marker_color=COLOURS["price"],
-            opacity=0.7,
+            opacity=0.65,
             nbinsx=50,
         )
     )
@@ -250,7 +280,7 @@ def plot_return_distribution(df: pd.DataFrame) -> go.Figure:
             x=anomaly_returns,
             name="Anomaly",
             marker_color=COLOURS["anomaly"],
-            opacity=0.9,
+            opacity=0.85,
             nbinsx=30,
         )
     )
@@ -264,12 +294,11 @@ def plot_return_distribution(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-# ── Chart 5: Anomaly calendar heatmap ──────────────────────────────────────
+# ── Chart 5: Feature space scatter ─────────────────────────────────────────
 
 def plot_anomaly_scatter(df: pd.DataFrame) -> go.Figure:
     """
-    Scatter plot of Daily Return vs Volume, coloured by anomaly status.
-    Shows the feature space where anomalies live relative to normal data.
+    Scatter plot of Daily Return vs Volume coloured by anomaly type.
     """
     fig = px.scatter(
         df.reset_index(),
@@ -277,15 +306,14 @@ def plot_anomaly_scatter(df: pd.DataFrame) -> go.Figure:
         y="Daily_Return",
         color="Anomaly_Type",
         color_discrete_map={
-            "Normal":                 COLOURS["normal_vol"],
-            "Z-Score Only":           COLOURS["zscore_only"],
-            "Isolation Forest Only":  COLOURS["iforest_only"],
-            "Both Methods":           COLOURS["both"],
+            "Normal":                "#aac8e8",
+            "Z-Score Only":          COLOURS["zscore_only"],
+            "Isolation Forest Only": COLOURS["iforest_only"],
+            "Both Methods":          COLOURS["both"],
         },
         hover_data={"Date": True, "Close": True},
         labels={"Daily_Return": "Daily Return (%)", "Volume": "Volume"},
-        title="Feature Space: Daily Return vs Volume",
-        template="plotly_dark",
+        template="simple_white",
         opacity=0.75,
     )
 
